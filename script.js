@@ -1,18 +1,37 @@
 // script.js
 document.getElementById('deobfuscateBtn').addEventListener('click', () => {
-  const inputCode = document.getElementById('inputCode').value;
+  const inputCode = document.getElementById('inputCode').value.trim();
   const outputCode = document.getElementById('outputCode');
+  const errorMessage = document.getElementById('errorMessage');
   const downloadBtn = document.getElementById('downloadBtn');
 
+  // Clear previous results
+  outputCode.value = '';
+  errorMessage.textContent = '';
+  downloadBtn.disabled = true;
+
+  if (!inputCode) {
+    errorMessage.textContent = 'Error: Input cannot be empty.';
+    return;
+  }
+
   try {
-    // Attempt to parse and format the code
-    const parsedCode = JSON.stringify(eval(`(${inputCode})`), null, 2);
-    outputCode.value = parsedCode;
+    // Safely parse the input using the Function constructor
+    let parsedCode;
+    try {
+      parsedCode = new Function(`return ${inputCode}`)();
+    } catch (parseError) {
+      throw new Error('Invalid JavaScript code. Please check the input.');
+    }
+
+    // Format the parsed code
+    const formattedCode = JSON.stringify(parsedCode, null, 2);
+    outputCode.value = formattedCode;
     downloadBtn.disabled = false;
 
     // Enable download functionality
     downloadBtn.onclick = () => {
-      const blob = new Blob([parsedCode], { type: 'text/javascript' });
+      const blob = new Blob([formattedCode], { type: 'text/javascript' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -21,7 +40,6 @@ document.getElementById('deobfuscateBtn').addEventListener('click', () => {
       URL.revokeObjectURL(url);
     };
   } catch (error) {
-    outputCode.value = 'Error: Unable to deobfuscate the code. Please check the input.';
-    downloadBtn.disabled = true;
+    errorMessage.textContent = `Error: ${error.message}`;
   }
 });
